@@ -1,0 +1,127 @@
+			# Kevin Wood, kwood123 111235445
+
+main:	  	irmovl $0x1000, %esp	# initializing stack pointer
+		irmovl $88, %eax	# 20 slots of array, with space for -
+		subl %eax, %esp		# 88 bytes reserved on stack
+		irmovl $8, %eax		# 8 bytes for locals
+		subl %eax, %esp		# reserving space for array size and start point
+		
+		call read_array
+		
+		irmovl $4, %esi		# moving 4 into esi for calculations
+		irmovl $4012, %ecx	# start of array
+		subl %esi, %ecx		# subtracting 1 place (4 bytes)
+		multl %eax, %esi	# multiplying length of array by 4
+		addl %esi, %ecx		# adding length * 4 bytes to start point
+
+		rmmovl %ecx, 8(%esp)	# moving ecx into local 2
+	  		
+		irmovl $0, %ebx		# moving total into ebx
+		pushl %ebx 		# pushing 0 as rightmost parameter
+		pushl %eax		# pushing size as middle parameter
+		pushl %ecx		# pushing start location as right parameter
+		
+		call prefix_sum
+		
+		popl %ecx		# popping parameters
+		popl %eax
+		popl %ebx
+
+		irmovl $4012, %ecx
+		pushl %ecx		# pushing memory address of array start
+		
+		call print_array
+		popl %ecx		# popping parameter
+		
+		irmovl $10, %esi	# writing newline character
+		wrch %esi  
+		halt			# end of main
+
+read_array:	pushl %ebp		# ON_ENTRY saving old frame pointer
+	  	rrmovl %esp, %ebp	# ON_ENTRY set new stack pointer
+		irmovl $4, %eax		# one local in read_array
+		subl %eax, %esp		# 4 bytes reserved on stack
+		irmovl $0, %eax		# will return size
+		
+		rdint %edx		# reading first character of array
+		rdch %esi		# reading whitespace after int
+		irmovl $20, %ebx
+		addl %ebp, %ebx		# setting pointer 20 away from ebp
+
+while_loop:	rmmovl %edx, (%ebx)	# moving array value into mem address of ebx
+		irmovl $4, %esi
+		addl %esi, %ebx		# increments ebx by 4 bytes. moving towards 0x1000
+		
+		irmovl $1, %ecx		# moving 1 into ecx for comparison
+      		addl %edx, %ecx		# int + 1 = 0? checking if -1
+      		je RA_End		# exiting function, int was -1
+		
+		irmovl $1, %edx		# resetting edx to 1
+		addl %edx, %eax		# incrementing size of size register
+		rmmovl %eax, -4(%ebp)	# storing size in local variable
+		rdint %edx 		# reading next character of array
+		rdch %ecx		# reading whitespace after int
+		jmp while_loop
+
+RA_End:		mrmovl -4(%ebp), %eax	# moving local variable size into eax
+		
+		rrmovl %ebp, %esp	# ON_EXIT resetting stack pointer
+		popl %ebp    		# ON_EXIT restore old stack pointer	
+		ret  			# ON_EXIT
+
+
+prefix_sum:	pushl %ebp		# ON_ENTRY saving old frame pointer
+	  	rrmovl %esp, %ebp	# ON_ENTRY set new stack pointer
+		
+		irmovl $0, %esi		# checking size for 0
+		mrmovl 12(%ebp), %ecx	# retrieving size
+		addl %ecx, %esi	 	# adding int + 0 = 0?
+		je sum_end 		# exit function if size is 0
+		
+		mrmovl 16(%ebp), %eax	# retrieving total (3rd parameter)
+		mrmovl 8(%ebp), %edx	# retrieving 1st parameter ( address value)
+		mrmovl (%edx), %ebx	# putting array value into ebx
+		addl %eax, %ebx		# *a += total 
+		rmmovl %ebx, 0(%edx)	# putting updated value back into array
+		
+		irmovl $4, %esi	
+		subl %esi, %edx		# adding 4 to edx, next integer to be read
+		irmovl $1, %esi
+		subl %esi, %ecx		# decrementing size
+		
+		pushl %ebx		# pushing first parameter, *a
+		pushl %ecx		# pushing 2nd parameter, size
+		pushl %edx		# pushing 3rd parameter, mem address of next int
+		
+		call prefix_sum
+		
+		popl %edx		# popping parameters
+		popl %ecx
+		popl %ebx
+		
+sum_end:	rrmovl %ebp, %esp	# ON_EXIT resetting stack pointer
+		popl %ebp    		# ON_EXIT restore old stack pointer	
+		ret  			# ON_EXIT
+
+print_array:	pushl %ebp		# ON_ENTRY saving old frame pointer
+	  	rrmovl %esp, %ebp	# ON_ENTRY set new stack pointer
+
+		mrmovl 8(%ebp), %edx	# retrieving 1st parameter (mem address of value)
+		mrmovl (%edx), %eax	# putting array value into eax
+		irmovl $1, %ecx		# moving 0 into ecx for comparison
+      		addl %eax, %ecx		# int + 1 = 0? checking if -1
+		je print_end
+		wrint %eax		# writing value
+		irmovl $32, %esi	# moving whitespace into %esi
+		wrch %esi		# writing whitespace
+		irmovl $4, %esi	
+		addl %esi, %edx		# adding 4 to edx, next integer to be read
+		
+		pushl %edx		# pushing mem address of next int
+		call print_array
+		popl %edx		# popping parameter
+
+print_end:	rrmovl %ebp, %esp	# ON_EXIT resetting stack pointer
+		popl %ebp    		# ON_EXIT restore old stack pointer	
+		ret  			# ON_EXIT
+	

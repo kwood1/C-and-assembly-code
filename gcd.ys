@@ -1,0 +1,46 @@
+		# Kevin Wood, kwood123 111235445
+
+main:	  irmovl $0x1000, %esp  # initializing stack pointer
+
+	  rdint %ebx	        # reading in parameter 1
+	  rdint %ecx	        # reading in parameter 2
+	  pushl %ecx	        # pushing rightmost parameter
+	  pushl %ebx	        # pushing first parameter
+
+	  call gcd
+	     
+	  popl %ebx	        # removing first parameter
+	  popl %ecx	      	# removing second parameter
+
+	  wrint %eax	      	# writing gcd of two parameters
+	  irmovl $10, %ecx      # newline character
+	  wrch %ecx   	      	# printing newline character
+
+	  halt 			# end of main
+
+gcd:	  pushl %ebp		# ON_ENTRY saving old frame pointer
+	  rrmovl %esp, %ebp     # ON_ENTRY set new stack pointer
+
+	  mrmovl 8(%ebp), %edx  # retrieving first parameter (a)
+	  mrmovl 12(%ebp), %esi # retrieving second parameter (b)
+	  
+	  irmovl $0, %edi 	# checking base case 
+	  subl %edi, %esi	# b - 0 = 0?
+	  je baseCase		# b - 0 = 0, jump to baseCase
+	  
+recStep:  modl %esi, %edx	# a = (a % b) 
+	  pushl %edx		# pushing a % b onto stack as second param 
+	  pushl %esi		# pushing b as first parameter
+
+	  call gcd		# recursive call
+
+	  popl %esi		# popping first parameter
+	  popl %edx		# popping second parameter
+	  jmp gcdEnd		# leaving current function call
+
+baseCase: mrmovl 8(%ebp), %eax	# base case, returning parameter a via %eax
+
+gcdEnd:	  rrmovl %ebp, %esp	# ON_EXIT resetting stack pointer
+	  popl %ebp   		# ON_EXIT restore old stack pointer
+	  ret  		  	# ON_EXIT
+
